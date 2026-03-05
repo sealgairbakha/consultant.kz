@@ -15,7 +15,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-from django.utils.asyncio import sync_to_async
 from asgiref.sync import sync_to_async
 from shop.models import Order
 from shop.services import send_document_email

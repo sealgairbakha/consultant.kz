@@ -13,10 +13,10 @@ def notify_telegram(order):
     token = settings.TELEGRAM_BOT_TOKEN
     admin_ids = [i.strip() for i in settings.TELEGRAM_ADMIN_IDS.split(',') if i.strip()]
     text = (
-        f'🛒 *Новый заказ #{order.pk}*\n\n'
-        f'📧 Email: `{order.email}`\n'
+        f'🛒 Новый заказ #{order.pk}\n\n'
+        f'📧 Email: {order.email}\n'
         f'📄 Документ: {order.document.title}\n'
-        f'💰 Сумма: *{order.document.price} ₸*\n'
+        f'💰 Сумма: {order.document.price} ₸\n'
         f'💳 Оплата: Kaspi\n'
     )
     keyboard = {
@@ -32,7 +32,6 @@ def notify_telegram(order):
                 json={
                     'chat_id': admin_id,
                     'text': text,
-                    'parse_mode': 'Markdown',
                     'reply_markup': keyboard,
                 },
                 timeout=5,

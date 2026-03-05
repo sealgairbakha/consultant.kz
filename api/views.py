@@ -16,7 +16,7 @@ def notify_telegram(order):
         f'🛒 Новый заказ #{order.pk}\n\n'
         f'📧 Email: {order.email}\n'
         f'📄 Документ: {order.document.title}\n'
-        f'💰 Сумма: {order.document.price} ₸\n'
+        f'💰 Сумма: {order.document.price}\n'
         f'💳 Оплата: Kaspi\n'
     )
     keyboard = {

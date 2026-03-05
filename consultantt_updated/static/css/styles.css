@@ -1,0 +1,68 @@
+/* Consultantt — custom styles */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body{
+  background-color: #F5F0E8;
+}
+
+#app {
+  box-shadow: 0 0 40px rgba(0,0,0,0.08);
+  background-color: #F5F0E8;
+}
+
+/* Gold color helpers (used alongside Tailwind) */
+.text-gold { color: #B8962E; }
+.bg-gold { background-color: #B8962E; }
+.hover\:bg-gold-dark:hover { background-color: #8B6E1C; }
+.border-gold { border-color: #B8962E; }
+.bg-cream { background-color: #F5F0E8; }
+.bg-cream-dark { background-color: #EDE5D4; }
+
+/* Payment option selected state */
+input[name="paymentMethod"]:checked + .payment-option {
+  border-color: #B8962E;
+  background-color: rgba(184,150,46,0.06);
+}
+
+/* Smooth transitions */
+.payment-option {
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Doc dropdown item hover */
+.doc-option:hover {
+  background-color: #F5F0E8;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #D4AF5A;
+  border-radius: 2px;
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Focus ring for inputs */
+input:focus {
+  outline: none;
+  border-color: #B8962E;
+  box-shadow: 0 0 0 3px rgba(184,150,46,0.12);
+}
+
+/* Button press feedback */
+button:active {
+  transform: scale(0.98);
+}
+

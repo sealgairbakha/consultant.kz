@@ -3,7 +3,7 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "python manage.py migrate --noinput && gunicorn consultantt.wsgi --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60 --log-file -"
-healthcheckPath = "/"
+healthcheckPath = "/healthz"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

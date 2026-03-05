@@ -48,10 +48,10 @@ def build_order_keyboard(order_id: int, status: str) -> InlineKeyboardMarkup:
 
 def format_order_message(order: Order) -> str:
     return (
-        f'🛒 *Новый заказ #{order.pk}*\n\n'
-        f'📧 Email: `{order.email}`\n'
+        f'🛒 Новый заказ #{order.pk}\n\n'
+        f'📧 Email: {order.email}\n'
         f'📄 Документ: {order.document.title}\n'
-        f'💰 Сумма: *{order.document.price} ₸*\n'
+        f'💰 Сумма: {order.document.price} ₸\n'
         f'💳 Оплата: Kaspi\n'
         f'📊 Статус: {order.get_status_display()}\n'
     )
@@ -113,7 +113,7 @@ async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     for order in pending:
         text = format_order_message(order)
         keyboard = build_order_keyboard(order.pk, order.status)
-        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=keyboard)
+        await update.message.reply_text(text, reply_markup=keyboard)
 
 
 async def cmd_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -138,7 +138,7 @@ async def cmd_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     text = format_order_message(order)
     keyboard = build_order_keyboard(order.pk, order.status)
-    await update.message.reply_text(text, parse_mode='Markdown', reply_markup=keyboard)
+    await update.message.reply_text(text, reply_markup=keyboard)
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -166,27 +166,25 @@ async def process_confirm(query, order_id: int) -> None:
 
     if order.status not in [Order.STATUS_CREATED, Order.STATUS_WAITING_PAYMENT]:
         await query.edit_message_text(
-            f'⚠️ Заказ #{order_id} уже обработан.\nТекущий статус: {order.get_status_display()}'
+            f'Заказ #{order_id} уже обработан.\nТекущий статус: {order.get_status_display()}'
         )
         return
 
     try:
         await confirm_order(order)
         await query.edit_message_text(
-            f'✅ *Заказ #{order_id} подтверждён!*\n\n'
-            f'📧 Документ отправлен на `{order.email}`\n'
-            f'📄 {order.document.title}',
-            parse_mode='Markdown'
+            f'✅ Заказ #{order_id} подтверждён!\n\n'
+            f'📧 Документ отправлен на {order.email}\n'
+            f'📄 {order.document.title}'
         )
         logger.info(f'Order #{order_id} confirmed and sent to {order.email}')
     except Exception as e:
         logger.error(f'Failed to send email for order #{order_id}: {e}')
         await set_order_status(order, Order.STATUS_PAID)
         await query.edit_message_text(
-            f'⚠️ *Заказ #{order_id} отмечен как оплаченный*, но письмо не отправлено!\n\n'
-            f'Ошибка: `{e}`\n\n'
-            f'Используйте /order {order_id} для повторной отправки.',
-            parse_mode='Markdown'
+            f'⚠️ Заказ #{order_id} отмечен как оплаченный, но письмо не отправлено!\n\n'
+            f'Ошибка: {e}\n\n'
+            f'Используйте /order {order_id} для повторной отправки.'
         )
 
 
@@ -198,14 +196,13 @@ async def process_cancel(query, order_id: int) -> None:
 
     if order.status in [Order.STATUS_PAID, Order.STATUS_SENT]:
         await query.edit_message_text(
-            f'⚠️ Нельзя отменить заказ #{order_id} — он уже {order.get_status_display().lower()}.'
+            f'Нельзя отменить заказ #{order_id} — он уже {order.get_status_display().lower()}.'
         )
         return
 
     await set_order_status(order, Order.STATUS_CANCELLED)
     await query.edit_message_text(
-        f'❌ *Заказ #{order_id} отменён.*\n\nEmail: `{order.email}`',
-        parse_mode='Markdown'
+        f'❌ Заказ #{order_id} отменён.\n\nEmail: {order.email}'
     )
     logger.info(f'Order #{order_id} cancelled by admin')
 

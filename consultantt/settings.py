@@ -118,3 +118,14 @@ CSRF_TRUSTED_ORIGINS = [x for x in _csrf.split(",") if x]
 
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_ADMIN_IDS = os.environ.get('TELEGRAM_ADMIN_IDS', '')
+
+import cloudinary
+import cloudinary_storage
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

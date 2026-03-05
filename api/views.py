@@ -19,11 +19,22 @@ def notify_telegram(order):
         f'💰 Сумма: *{order.document.price} ₸*\n'
         f'💳 Оплата: Kaspi\n'
     )
+    keyboard = {
+        'inline_keyboard': [[
+            {'text': '✅ Подтвердить оплату', 'callback_data': f'confirm_{order.pk}'},
+            {'text': '❌ Отменить заказ', 'callback_data': f'cancel_{order.pk}'},
+        ]]
+    }
     for admin_id in admin_ids:
         try:
             httpx.post(
                 f'https://api.telegram.org/bot{token}/sendMessage',
-                json={'chat_id': admin_id, 'text': text, 'parse_mode': 'Markdown'},
+                json={
+                    'chat_id': admin_id,
+                    'text': text,
+                    'parse_mode': 'Markdown',
+                    'reply_markup': keyboard,
+                },
                 timeout=5,
             )
         except Exception:

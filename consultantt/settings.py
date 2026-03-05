@@ -11,7 +11,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key-change-in-product
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*.up.railway.app,localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -113,6 +113,5 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS", ""
-).split(",")
+_csrf = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://*.up.railway.app")
+CSRF_TRUSTED_ORIGINS = [x for x in _csrf.split(",") if x]

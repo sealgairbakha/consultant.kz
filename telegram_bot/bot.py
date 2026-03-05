@@ -1,20 +1,8 @@
-"""
-Telegram-бот для подтверждения оплаты заказов.
-
-Запуск: python telegram_bot/bot.py
-
-Требует переменных окружения:
-  TELEGRAM_BOT_TOKEN  — токен бота от @BotFather
-  TELEGRAM_ADMIN_IDS  — ID администраторов через запятую (получить можно у @userinfobot)
-  DJANGO_BASE_URL     — базовый URL Django-приложения (например http://localhost:8000)
-"""
-
 import os
 import sys
 import logging
 import django
 
-# Добавляем корень проекта в путь, чтобы импортировать Django
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'consultantt.settings')
 django.setup()
@@ -27,6 +15,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
+from django.utils.asyncio import sync_to_async
+from asgiref.sync import sync_to_async
 from shop.models import Order
 from shop.services import send_document_email
 
@@ -58,15 +48,44 @@ def build_order_keyboard(order_id: int, status: str) -> InlineKeyboardMarkup:
 
 
 def format_order_message(order: Order) -> str:
-    payment_emoji = '💳'
     return (
         f'🛒 *Новый заказ #{order.pk}*\n\n'
         f'📧 Email: `{order.email}`\n'
         f'📄 Документ: {order.document.title}\n'
         f'💰 Сумма: *{order.document.price} ₸*\n'
-        f'{payment_emoji} Оплата: Kaspi\n'
+        f'💳 Оплата: Kaspi\n'
         f'📊 Статус: {order.get_status_display()}\n'
     )
+
+
+@sync_to_async
+def get_pending_orders():
+    return list(
+        Order.objects.filter(
+            status__in=[Order.STATUS_CREATED, Order.STATUS_WAITING_PAYMENT]
+        ).select_related('document').order_by('-created_at')[:20]
+    )
+
+
+@sync_to_async
+def get_order(order_id):
+    try:
+        return Order.objects.select_related('document').get(pk=order_id)
+    except Order.DoesNotExist:
+        return None
+
+
+@sync_to_async
+def confirm_order(order):
+    send_document_email(order)
+    order.status = Order.STATUS_SENT
+    order.save()
+
+
+@sync_to_async
+def set_order_status(order, status):
+    order.status = status
+    order.save()
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -86,9 +105,7 @@ async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text('⛔ Доступ запрещён.')
         return
 
-    pending = Order.objects.filter(
-        status__in=[Order.STATUS_CREATED, Order.STATUS_WAITING_PAYMENT]
-    ).select_related('document').order_by('-created_at')[:20]
+    pending = await get_pending_orders()
 
     if not pending:
         await update.message.reply_text('✅ Нет ожидающих заказов.')
@@ -111,8 +128,12 @@ async def cmd_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     try:
         order_id = int(context.args[0])
-        order = Order.objects.select_related('document').get(pk=order_id)
-    except (ValueError, Order.DoesNotExist):
+    except ValueError:
+        await update.message.reply_text('❌ Неверный ID.')
+        return
+
+    order = await get_order(order_id)
+    if not order:
         await update.message.reply_text('❌ Заказ не найден.')
         return
 
@@ -139,9 +160,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def process_confirm(query, order_id: int) -> None:
-    try:
-        order = Order.objects.select_related('document').get(pk=order_id)
-    except Order.DoesNotExist:
+    order = await get_order(order_id)
+    if not order:
         await query.edit_message_text('❌ Заказ не найден.')
         return
 
@@ -151,11 +171,8 @@ async def process_confirm(query, order_id: int) -> None:
         )
         return
 
-    # Подтверждаем оплату и отправляем файл
     try:
-        send_document_email(order)
-        order.status = Order.STATUS_SENT
-        order.save()
+        await confirm_order(order)
         await query.edit_message_text(
             f'✅ *Заказ #{order_id} подтверждён!*\n\n'
             f'📧 Документ отправлен на `{order.email}`\n'
@@ -165,9 +182,7 @@ async def process_confirm(query, order_id: int) -> None:
         logger.info(f'Order #{order_id} confirmed and sent to {order.email}')
     except Exception as e:
         logger.error(f'Failed to send email for order #{order_id}: {e}')
-        # Всё равно ставим статус paid, чтобы можно было переотправить вручную
-        order.status = Order.STATUS_PAID
-        order.save()
+        await set_order_status(order, Order.STATUS_PAID)
         await query.edit_message_text(
             f'⚠️ *Заказ #{order_id} отмечен как оплаченный*, но письмо не отправлено!\n\n'
             f'Ошибка: `{e}`\n\n'
@@ -177,9 +192,8 @@ async def process_confirm(query, order_id: int) -> None:
 
 
 async def process_cancel(query, order_id: int) -> None:
-    try:
-        order = Order.objects.select_related('document').get(pk=order_id)
-    except Order.DoesNotExist:
+    order = await get_order(order_id)
+    if not order:
         await query.edit_message_text('❌ Заказ не найден.')
         return
 
@@ -189,8 +203,7 @@ async def process_cancel(query, order_id: int) -> None:
         )
         return
 
-    order.status = Order.STATUS_CANCELLED
-    order.save()
+    await set_order_status(order, Order.STATUS_CANCELLED)
     await query.edit_message_text(
         f'❌ *Заказ #{order_id} отменён.*\n\nEmail: `{order.email}`',
         parse_mode='Markdown'
@@ -200,10 +213,10 @@ async def process_cancel(query, order_id: int) -> None:
 
 def main() -> None:
     if not BOT_TOKEN:
-        logger.error('TELEGRAM_BOT_TOKEN не задан в .env!')
+        logger.error('TELEGRAM_BOT_TOKEN не задан!')
         sys.exit(1)
     if not ADMIN_IDS:
-        logger.error('TELEGRAM_ADMIN_IDS не задан в .env!')
+        logger.error('TELEGRAM_ADMIN_IDS не задан!')
         sys.exit(1)
 
     app = Application.builder().token(BOT_TOKEN).build()

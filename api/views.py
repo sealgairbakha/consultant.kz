@@ -32,6 +32,7 @@ def notify_telegram(order):
                 json={
                     'chat_id': admin_id,
                     'text': text,
+                    'parse_mode': '',
                     'reply_markup': keyboard,
                 },
                 timeout=5,

@@ -115,3 +115,6 @@ if not DEBUG:
 
 _csrf = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://*.up.railway.app")
 CSRF_TRUSTED_ORIGINS = [x for x in _csrf.split(",") if x]
+
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_ADMIN_IDS = os.environ.get('TELEGRAM_ADMIN_IDS', '')

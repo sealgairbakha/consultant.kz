@@ -1,10 +1,33 @@
 import json
+import httpx
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_protect
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from shop.models import Document, Order
+
+
+def notify_telegram(order):
+    token = settings.TELEGRAM_BOT_TOKEN
+    admin_ids = [i.strip() for i in settings.TELEGRAM_ADMIN_IDS.split(',') if i.strip()]
+    text = (
+        f'🛒 *Новый заказ #{order.pk}*\n\n'
+        f'📧 Email: `{order.email}`\n'
+        f'📄 Документ: {order.document.title}\n'
+        f'💰 Сумма: *{order.document.price} ₸*\n'
+        f'💳 Оплата: Kaspi\n'
+    )
+    for admin_id in admin_ids:
+        try:
+            httpx.post(
+                f'https://api.telegram.org/bot{token}/sendMessage',
+                json={'chat_id': admin_id, 'text': text, 'parse_mode': 'Markdown'},
+                timeout=5,
+            )
+        except Exception:
+            pass
 
 
 @require_GET
@@ -28,6 +51,7 @@ def order_create(request):
         return JsonResponse({'error': 'Неверный формат данных.'}, status=400)
 
     email = body.get('email', '').strip()
+    phone = body.get('phone', '').strip()
     document_id = body.get('document_id')
 
     if not email:
@@ -51,6 +75,8 @@ def order_create(request):
         document=document,
         status=Order.STATUS_WAITING_PAYMENT,
     )
+
+    notify_telegram(order)
 
     return JsonResponse({
         'success': True,
